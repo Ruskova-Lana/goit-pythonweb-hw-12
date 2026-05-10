@@ -1,6 +1,6 @@
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 
-from goit_hw_10.config import settings
+from goit_hw_12.config import settings
 
 
 conf = ConnectionConfig(
@@ -17,6 +17,13 @@ conf = ConnectionConfig(
 
 
 async def send_verification_email(email: str, token: str):
+    """
+    Send email verification link to a newly registered user.
+
+    :param email: User email address.
+    :param token: JWT verification token.
+    :return: None
+    """
     verification_link = f"http://127.0.0.1:8000/auth/confirmed_email/{token}"
 
     html = f"""
@@ -27,6 +34,33 @@ async def send_verification_email(email: str, token: str):
 
     message = MessageSchema(
         subject="Confirm your email",
+        recipients=[email],
+        body=html,
+        subtype=MessageType.html,
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+
+async def send_password_reset_email(email: str, token: str):
+    """
+    Send password reset link to a user.
+
+    :param email: User email address.
+    :param token: JWT password reset token.
+    :return: None
+    """
+    reset_link = f"http://127.0.0.1:8000/auth/reset-password/{token}"
+
+    html = f"""
+    <h2>Password reset</h2>
+    <p>Please click the link below to reset your password:</p>
+    <a href="{reset_link}">Reset password</a>
+    """
+
+    message = MessageSchema(
+        subject="Password reset",
         recipients=[email],
         body=html,
         subtype=MessageType.html,

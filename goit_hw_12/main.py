@@ -10,12 +10,12 @@ from slowapi.extension import _rate_limit_exceeded_handler
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-import goit_hw_10.crud as crud
-from goit_hw_10.auth import get_current_user, router as auth_router
-from goit_hw_10.database import Base, engine, get_db
-from goit_hw_10.models import User
-from goit_hw_10.schemas import ContactCreate, ContactResponse, ContactUpdate
-from goit_hw_10.users import router as users_router
+import goit_hw_12.crud as crud
+from goit_hw_12.auth import get_current_user, router as auth_router
+from goit_hw_12.database import Base, engine, get_db
+from goit_hw_12.models import User
+from goit_hw_12.schemas import ContactCreate, ContactResponse, ContactUpdate
+from goit_hw_12.users import router as users_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -27,9 +27,16 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

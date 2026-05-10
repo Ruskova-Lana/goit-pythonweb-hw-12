@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from goit_hw_10.config import settings
+from goit_hw_12.config import settings
 
 engine = create_engine(settings.DATABASE_URL)
 

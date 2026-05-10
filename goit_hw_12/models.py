@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
-from goit_hw_10.database import Base
+from goit_hw_12.database import Base
 
 
 class User(Base):
@@ -15,7 +15,8 @@ class User(Base):
     password = Column(String(255), nullable=False)
     avatar = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    role = Column(String(20), default="user")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     contacts = relationship("Contact", back_populates="user")
 
@@ -30,7 +31,7 @@ class Contact(Base):
     phone = Column(String(30), nullable=False)
     birthday = Column(Date, nullable=False)
     additional_info = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 

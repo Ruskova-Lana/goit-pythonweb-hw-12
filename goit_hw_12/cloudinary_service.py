@@ -1,7 +1,7 @@
 import cloudinary
 import cloudinary.uploader
 
-from goit_hw_10.config import settings
+from goit_hw_12.config import settings
 
 
 cloudinary.config(

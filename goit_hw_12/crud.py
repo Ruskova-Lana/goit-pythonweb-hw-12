@@ -4,8 +4,8 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from goit_hw_10.models import Contact, User
-from goit_hw_10.schemas import ContactCreate, ContactUpdate
+from goit_hw_12.models import Contact, User
+from goit_hw_12.schemas import ContactCreate, ContactUpdate
 
 
 def create_contact(db: Session, contact: ContactCreate, user: User):
@@ -32,7 +32,8 @@ def get_contacts(db: Session, user: User):
 def get_contact(db: Session, contact_id: int, user: User):
     return (
         db.query(Contact)
-        .filter(Contact.id == contact_id, Contact.user_id == user.id)
+        .filter(Contact.id == contact_id)
+        .filter(Contact.user_id == user.id)
         .first()
     )
 

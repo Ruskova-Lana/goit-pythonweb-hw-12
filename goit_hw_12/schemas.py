@@ -16,6 +16,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     avatar: Optional[str] = None
     confirmed: bool
+    role: str
     created_at: datetime
 
     class Config:

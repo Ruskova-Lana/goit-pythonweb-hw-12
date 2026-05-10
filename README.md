@@ -1,57 +1,78 @@
 # Contacts REST API
 
-REST API application built with FastAPI for managing contacts with JWT authentication, email verification, rate limiting, CORS support, and avatar upload via Cloudinary.
+REST API application for contact management built with FastAPI, PostgreSQL, JWT authentication, Redis caching, Cloudinary integration, email verification, password reset, role-based access control, unit testing, integration testing, and Sphinx documentation.
 
-## Features
+---
 
-* User registration and login
-* JWT authentication (`access_token`)
-* Email verification
-* Password hashing with bcrypt
-* CRUD operations for contacts
-* Search contacts by first name, last name, or email
-* Upcoming birthdays endpoint
-* Access only to own contacts
-* Rate limiting for `/users/me`
-* CORS support
-* Avatar upload with Cloudinary
-* PostgreSQL database
-* Docker Compose support
-* Swagger documentation
+# Features
+
+- User registration and authentication
+- JWT access tokens
+- Email verification
+- Password reset via email
+- CRUD operations for contacts
+- Contact search
+- Upcoming birthdays
+- Redis caching
+- Role-based access (`user`, `admin`)
+- Avatar upload with Cloudinary
+- Rate limiting
+- CORS support
+- Swagger/OpenAPI documentation
+- Unit and integration tests
+- Docker Compose support
+- Sphinx documentation
 
 ---
 
 # Technologies
 
-* FastAPI
-* SQLAlchemy
-* PostgreSQL
-* Poetry
-* JWT (python-jose)
-* Passlib / bcrypt
-* FastAPI-Mail
-* Cloudinary
-* Docker Compose
+- FastAPI
+- PostgreSQL
+- SQLAlchemy
+- Redis
+- Docker Compose
+- JWT (python-jose)
+- Passlib / bcrypt
+- Cloudinary
+- FastAPI-Mail
+- Pytest
+- Pytest-cov
+- Sphinx
 
 ---
 
 # Project Structure
 
 ```text
-GOIT-PYTHONWEB-HW-10/
+GOIT-PYTHONWEB-HW-12/
 │
-├── goit_hw_10/
+├── docs/
+│
+├── goit_hw_12/
 │   ├── __init__.py
-│   ├── main.py
-│   ├── database.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── crud.py
 │   ├── auth.py
-│   ├── users.py
+│   ├── cloudinary_service.py
 │   ├── config.py
+│   ├── crud.py
+│   ├── database.py
 │   ├── email_service.py
-│   └── cloudinary_service.py
+│   ├── main.py
+│   ├── models.py
+│   ├── redis_client.py
+│   ├── schemas.py
+│   └── users.py
+│
+├── tests/
+│   ├── conftest.py
+│   ├── test_auth_routes.py
+│   ├── test_auth_unit.py
+│   ├── test_cloudinary_service.py
+│   ├── test_contacts_routes.py
+│   ├── test_contacts_unit.py
+│   ├── test_email_service.py
+│   ├── test_extra_routes.py
+│   └── test_users_routes.py
 │
 ├── .env
 ├── .env.example
@@ -59,6 +80,7 @@ GOIT-PYTHONWEB-HW-10/
 ├── docker-compose.yml
 ├── poetry.lock
 ├── pyproject.toml
+├── pytest.ini
 └── README.md
 ```
 
@@ -66,50 +88,56 @@ GOIT-PYTHONWEB-HW-10/
 
 # Installation
 
-## 1. Clone repository
+## Clone repository
 
 ```bash
-git clone https://github.com/Ruskova-Lana/goit-pythonweb-hw-10.git
-cd goit-pythonweb-hw-10
+git clone https://github.com/your-username/goit-pythonweb-hw-12.git
+```
+
+```bash
+cd goit-pythonweb-hw-12
 ```
 
 ---
 
-## 2. Install dependencies
+# Install dependencies
 
 ```bash
-poetry install --no-root
+poetry install
 ```
 
 ---
 
-## 3. Configure environment variables
+# Environment Variables
 
-Create `.env` file based on `.env.example`
+Create `.env` file based on `.env.example`.
 
 Example:
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/contacts_db
+DATABASE_URL=postgresql://postgres:password@localhost:5432/contacts_db
 
-SECRET_KEY=your_secret_key
+SECRET_KEY=super_secret_key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-MAIL_USERNAME=your_email@gmail.com
-MAIL_PASSWORD=your_app_password
-MAIL_FROM=your_email@gmail.com
+MAIL_USERNAME=example@gmail.com
+MAIL_PASSWORD=your_password
+MAIL_FROM=example@gmail.com
 MAIL_PORT=587
 MAIL_SERVER=smtp.gmail.com
 
 CLOUDINARY_NAME=your_cloudinary_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 ---
 
-# Run PostgreSQL with Docker
+# Run Docker Services
 
 ```bash
 docker compose up -d
@@ -117,13 +145,13 @@ docker compose up -d
 
 ---
 
-# Run application
+# Run Application
 
 ```bash
-poetry run uvicorn goit_hw_10.main:app --reload
+poetry run uvicorn goit_hw_12.main:app --reload
 ```
 
-Application will be available at:
+Application URL:
 
 ```text
 http://127.0.0.1:8000
@@ -135,135 +163,158 @@ Swagger documentation:
 http://127.0.0.1:8000/docs
 ```
 
+OpenAPI schema:
+
+```text
+http://127.0.0.1:8000/openapi.json
+```
+
 ---
 
 # Authentication
 
-## Register user
+The application uses JWT access tokens.
 
-`POST /auth/signup`
+## Signup
 
-Example request:
-
-```json
-{
-  "username": "Ruslana",
-  "email": "ruslana@test.com",
-  "password": "12345678"
-}
+```http
+POST /auth/signup
 ```
-
----
 
 ## Login
 
-`POST /auth/login`
-
-Use:
-
-```text
-username = email
-password = user password
+```http
+POST /auth/login
 ```
 
-Successful response:
+# Email Verification Flow
 
-```json
-{
-  "access_token": "jwt_token",
-  "token_type": "bearer"
-}
-```
-
----
-
-## Swagger Authorization
-
-Click `Authorize` in Swagger UI and insert token:
-
-```text
-Bearer your_access_token
-```
-
----
-
-# Contacts Endpoints
-
-| Method | Endpoint               | Description        |
-| ------ | ---------------------- | ------------------ |
-| POST   | `/contacts/`           | Create contact     |
-| GET    | `/contacts/`           | Get all contacts   |
-| GET    | `/contacts/{id}`       | Get contact by ID  |
-| PUT    | `/contacts/{id}`       | Update contact     |
-| DELETE | `/contacts/{id}`       | Delete contact     |
-| GET    | `/contacts/search/`    | Search contacts    |
-| GET    | `/contacts/birthdays/` | Upcoming birthdays |
-
----
-
-# User Endpoints
-
-| Method | Endpoint        | Description          |
-| ------ | --------------- | -------------------- |
-| GET    | `/users/me`     | Current user profile |
-| PATCH  | `/users/avatar` | Upload avatar        |
-
----
-
-# Email Verification
-
-After registration user receives verification email.
-
-Verification endpoint:
+1. User registers via `POST /auth/signup`.
+2. The application creates a user with `confirmed = false`.
+3. A verification token is generated and sent to the user's email.
+4. User follows the verification link:
 
 ```text
 GET /auth/confirmed_email/{token}
 ```
 
----
-
-# Rate Limiting
-
-Endpoint:
-
-```text
-/users/me
-```
-
-is limited to:
-
-```text
-5 requests per minute
-```
+5. After successful verification, `confirmed` becomes `true`.
+6. Only confirmed users can log in via `POST /auth/login`.
 
 ---
 
-# CORS
+# Contacts Endpoints
 
-CORS middleware is enabled for the application.
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /contacts/ | Get all contacts |
+| GET | /contacts/{id} | Get contact by ID |
+| POST | /contacts/ | Create contact |
+| PUT | /contacts/{id} | Update contact |
+| DELETE | /contacts/{id} | Delete contact |
+| GET | /contacts/search/ | Search contacts |
+| GET | /contacts/birthdays/ | Upcoming birthdays |
 
 ---
 
-# Password Security
+# User Features
 
-Passwords are hashed using bcrypt before saving to database.
+- Email verification
+- Password reset
+- Avatar upload
+- Redis caching
+- Rate limiting
+- Role-based permissions
 
 ---
 
-# Docker Compose
+# Roles
 
-Application uses Docker Compose for PostgreSQL database.
+Supported roles:
 
-Run:
+- `user`
+- `admin`
+
+Only administrators can update default avatars.
+
+---
+
+# Redis Caching
+
+Redis is used for caching authenticated users.
+
+---
+
+# Testing
+
+The project contains:
+
+- Unit tests
+- Integration tests
+
+Testing tools:
+
+- pytest
+- pytest-asyncio
+- pytest-cov
+- httpx
+
+## Run tests
 
 ```bash
-docker compose up -d
+poetry run python -m pytest tests/
 ```
 
-Stop:
+## Run tests with coverage
 
 ```bash
-docker compose down
+poetry run python -m pytest --cov=goit_hw_12 --cov-report=term-missing tests/
+```
+
+Current test coverage:
+
+```text
+75%
+```
+
+---
+
+# Generate HTML Coverage Report
+
+```bash
+poetry run python -m pytest --cov=goit_hw_12 --cov-report=html tests/
+```
+
+Coverage report will be generated in:
+
+```text
+htmlcov/index.html
+```
+
+---
+
+# Sphinx Documentation
+
+Generate documentation:
+
+```bash
+sphinx-build -b html docs docs/_build
+```
+
+---
+
+# API Documentation
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+OpenAPI schema:
+
+```text
+http://127.0.0.1:8000/openapi.json
 ```
 
 ---

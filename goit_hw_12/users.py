@@ -3,11 +3,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
-from goit_hw_10.auth import get_current_user
-from goit_hw_10.cloudinary_service import upload_avatar
-from goit_hw_10.database import get_db
-from goit_hw_10.models import User
-from goit_hw_10.schemas import UserResponse
+from goit_hw_12.auth import get_current_user
+from goit_hw_12.cloudinary_service import upload_avatar
+from goit_hw_12.database import get_db
+from goit_hw_12.models import User
+from goit_hw_12.schemas import UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 

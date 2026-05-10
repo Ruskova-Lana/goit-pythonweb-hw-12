@@ -15,3 +15,9 @@ env/
 Thumbs.db
 
 *.log
+
+docs/_build/
+
+htmlcov/
+.coverage
+.pytest_cache/
