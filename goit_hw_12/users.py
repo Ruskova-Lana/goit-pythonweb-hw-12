@@ -3,7 +3,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
-from goit_hw_12.auth import get_current_user
+from goit_hw_12.auth import get_current_user, admin_required
 from goit_hw_12.cloudinary_service import upload_avatar
 from goit_hw_12.database import get_db
 from goit_hw_12.models import User
@@ -26,9 +26,14 @@ async def get_me(
 @router.patch("/avatar", response_model=UserResponse)
 async def update_avatar(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(admin_required),
     db: Session = Depends(get_db),
 ):
+    """
+    Update user avatar.
+
+    Only users with admin role are allowed to update avatar.
+    """
     avatar_url = upload_avatar(file, current_user.id)
 
     current_user.avatar = avatar_url

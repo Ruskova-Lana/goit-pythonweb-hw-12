@@ -109,9 +109,13 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ):
     """
-    Get current authenticated user.
-    """
+    Retrieve the currently authenticated user from Redis cache or database.
 
+    If the user is present in Redis cache, the function returns a User-like
+    object without querying the database. If the user is not cached, the
+    function retrieves the user from PostgreSQL and stores minimal safe user
+    data in Redis.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -124,7 +128,6 @@ async def get_current_user(
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
         )
-
         email = payload.get("sub")
 
         if email is None:
@@ -138,10 +141,14 @@ async def get_current_user(
     if cached_user:
         user_data = json.loads(cached_user)
 
-        user = db.query(User).filter(User.id == user_data["id"]).first()
-
-        if user:
-            return user
+        return User(
+            id=user_data["id"],
+            username=user_data["username"],
+            email=user_data["email"],
+            avatar=user_data.get("avatar"),
+            confirmed=user_data["confirmed"],
+            role=user_data["role"],
+        )
 
     user = db.query(User).filter(User.email == email).first()
 
@@ -154,9 +161,11 @@ async def get_current_user(
         json.dumps(
             {
                 "id": user.id,
+                "username": user.username,
                 "email": user.email,
-                "role": user.role,
+                "avatar": user.avatar,
                 "confirmed": user.confirmed,
+                "role": user.role,
             }
         ),
     )
