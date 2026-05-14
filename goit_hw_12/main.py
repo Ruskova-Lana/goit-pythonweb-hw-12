@@ -1,12 +1,13 @@
+from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from slowapi.extension import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,11 +18,28 @@ from goit_hw_12.models import User
 from goit_hw_12.schemas import ContactCreate, ContactResponse, ContactUpdate
 from goit_hw_12.users import router as users_router
 
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan handler.
+
+    Creates database tables during application startup.
+    The table creation is executed when the application starts,
+    not during module import. This makes the application easier
+    to import in tests and avoids unexpected database connections
+    before the FastAPI app is initialized.
+    """
+    Base.metadata.create_all(bind=engine)
+    yield
+
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="Contacts REST API")
+app = FastAPI(
+    title="Contacts REST API",
+    lifespan=lifespan,
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -42,21 +60,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(auth_router)
 app.include_router(users_router)
 
 
-@app.post("/contacts/", response_model=ContactResponse, status_code=201)
+@app.post(
+    "/contacts/",
+    response_model=ContactResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_contact(
     contact: ContactCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Create a new contact for the authenticated user.
+
+    :param contact: Contact data provided in request body.
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: Created contact.
+    :raises HTTPException: 409 Conflict if contact email already exists.
+    """
     try:
         return crud.create_contact(db, contact, current_user)
     except IntegrityError:
+        db.rollback()
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Contact with this email already exists",
         )
 
@@ -66,6 +99,13 @@ def get_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Get all contacts that belong to the authenticated user.
+
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: List of user's contacts.
+    """
     return crud.get_contacts(db, current_user)
 
 
@@ -75,6 +115,14 @@ def search_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Search authenticated user's contacts by first name, last name or email.
+
+    :param query: Search query string.
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: List of matching contacts.
+    """
     return crud.search_contacts(db, query, current_user)
 
 
@@ -83,6 +131,15 @@ def get_upcoming_birthdays(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Get contacts with birthdays within the next 7 days.
+
+    The query is limited to contacts that belong to the authenticated user.
+
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: List of contacts with upcoming birthdays.
+    """
     return crud.get_upcoming_birthdays(db, current_user)
 
 
@@ -92,10 +149,24 @@ def get_contact(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Get a single contact by ID.
+
+    The contact must belong to the authenticated user.
+
+    :param contact_id: Contact identifier.
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: Contact object.
+    :raises HTTPException: 404 Not Found if contact does not exist.
+    """
     contact = crud.get_contact(db, contact_id, current_user)
 
     if contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found",
+        )
 
     return contact
 
@@ -107,15 +178,30 @@ def update_contact(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Update an existing contact.
+
+    The contact must belong to the authenticated user.
+
+    :param contact_id: Contact identifier.
+    :param contact: Updated contact data.
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: Updated contact.
+    :raises HTTPException: 404 Not Found if contact does not exist.
+    """
     updated_contact = crud.update_contact(
-        db,
-        contact_id,
-        contact,
-        current_user,
+        db=db,
+        contact_id=contact_id,
+        contact=contact,
+        user=current_user,
     )
 
     if updated_contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found",
+        )
 
     return updated_contact
 
@@ -126,9 +212,27 @@ def delete_contact(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    deleted_contact = crud.delete_contact(db, contact_id, current_user)
+    """
+    Delete an existing contact.
+
+    The contact must belong to the authenticated user.
+
+    :param contact_id: Contact identifier.
+    :param db: Database session.
+    :param current_user: Authenticated user from JWT token.
+    :return: Deleted contact.
+    :raises HTTPException: 404 Not Found if contact does not exist.
+    """
+    deleted_contact = crud.delete_contact(
+        db=db,
+        contact_id=contact_id,
+        user=current_user,
+    )
 
     if deleted_contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found",
+        )
 
     return deleted_contact

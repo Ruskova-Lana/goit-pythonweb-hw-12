@@ -1,12 +1,15 @@
-from unittest.mock import MagicMock
+import json
+from unittest.mock import MagicMock, patch
 
 import pytest
+from jose import jwt
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 
 from goit_hw_12.auth import (
+    get_current_user,
     create_access_token,
     create_email_token,
     create_password_reset_token, 
@@ -15,8 +18,40 @@ from goit_hw_12.auth import (
     admin_required
 )
 from goit_hw_12.main import app
+from goit_hw_12.config import settings
 
 client = TestClient(app)
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_from_cache_without_db_call():
+    token = jwt.encode(
+        {"sub": "cached@test.com"},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+
+    cached_user = {
+        "id": 1,
+        "username": "Cached User",
+        "email": "cached@test.com",
+        "avatar": None,
+        "confirmed": True,
+        "role": "user",
+    }
+
+    db = MagicMock()
+
+    with patch(
+        "goit_hw_12.auth.redis_client.get",
+        return_value=json.dumps(cached_user),
+    ):
+        user = await get_current_user(token=token, db=db)
+
+    assert user.email == "cached@test.com"
+    assert user.role == "user"
+    db.query.assert_not_called()
+
 
 def test_create_email_token():
     token = create_email_token("test@test.com")

@@ -1,27 +1,28 @@
 # Contacts REST API
 
-REST API application for contact management built with FastAPI, PostgreSQL, JWT authentication, Redis caching, Cloudinary integration, email verification, password reset, role-based access control, unit testing, integration testing, and Sphinx documentation.
+REST API application for managing contacts built with FastAPI, PostgreSQL, Redis, JWT authentication, Cloudinary avatar storage, email verification, and role-based access control.
 
 ---
 
 # Features
 
-- User registration and authentication
-- JWT access tokens
+- User registration and login
+- JWT authentication
 - Email verification
+- Password hashing with Passlib/Bcrypt
 - Password reset via email
+- Role-based access (`user` / `admin`)
 - CRUD operations for contacts
-- Contact search
+- Search contacts
 - Upcoming birthdays
-- Redis caching
-- Role-based access (`user`, `admin`)
-- Avatar upload with Cloudinary
-- Rate limiting
-- CORS support
-- Swagger/OpenAPI documentation
-- Unit and integration tests
+- Cloudinary avatar upload
+- Redis caching for authenticated users
+- Request rate limiting
+- CORS configuration
 - Docker Compose support
-- Sphinx documentation
+- Unit and integration tests
+- Sphinx-ready docstrings
+- Test coverage > 75%
 
 ---
 
@@ -31,26 +32,22 @@ REST API application for contact management built with FastAPI, PostgreSQL, JWT 
 - PostgreSQL
 - SQLAlchemy
 - Redis
-- Docker Compose
-- JWT (python-jose)
+- JWT / python-jose
 - Passlib / bcrypt
 - Cloudinary
-- FastAPI-Mail
+- SlowAPI
 - Pytest
-- Pytest-cov
-- Sphinx
+- Docker Compose
+- Poetry
 
 ---
 
 # Project Structure
 
 ```text
-GOIT-PYTHONWEB-HW-12/
-│
-├── docs/
+goit-pythonweb-hw-12/
 │
 ├── goit_hw_12/
-│   ├── __init__.py
 │   ├── auth.py
 │   ├── cloudinary_service.py
 │   ├── config.py
@@ -74,14 +71,17 @@ GOIT-PYTHONWEB-HW-12/
 │   ├── test_extra_routes.py
 │   └── test_users_routes.py
 │
-├── .env
-├── .env.example
-├── .gitignore
+├── docs/
+├── htmlcov/
+├── Dockerfile
 ├── docker-compose.yml
 ├── poetry.lock
 ├── pyproject.toml
 ├── pytest.ini
-└── README.md
+├── README.md
+├── .env
+├── .env.example
+└── .gitignore
 ```
 
 ---
@@ -91,10 +91,7 @@ GOIT-PYTHONWEB-HW-12/
 ## Clone repository
 
 ```bash
-git clone https://github.com/your-username/goit-pythonweb-hw-12.git
-```
-
-```bash
+git clone https://github.com/Ruskova-Lana/goit-pythonweb-hw-12.git
 cd goit-pythonweb-hw-12
 ```
 
@@ -112,22 +109,22 @@ poetry install
 
 Create `.env` file based on `.env.example`.
 
-Example:
+Example for local run:
 
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/contacts_db
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/contacts_db
 
-SECRET_KEY=super_secret_key
+SECRET_KEY=super_secret_key_change_me
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-MAIL_USERNAME=example@gmail.com
-MAIL_PASSWORD=your_password
-MAIL_FROM=example@gmail.com
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_email_app_password
+MAIL_FROM=your_email@gmail.com
 MAIL_PORT=587
 MAIL_SERVER=smtp.gmail.com
 
-CLOUDINARY_NAME=your_cloudinary_name
+CLOUDINARY_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
@@ -135,170 +132,42 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
----
+Example for Docker Compose:
 
-# Run Docker Services
+```env
+DATABASE_URL=postgresql://postgres:postgres123@db:5432/contacts_db
 
-```bash
-docker compose up -d
+REDIS_HOST=redis
+REDIS_PORT=6379
 ```
 
 ---
 
-# Run Application
+# Running with Docker Compose
+
+## Start services
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- FastAPI application
+- PostgreSQL
+- Redis
+
+---
+
+# Running locally
+
+## Start PostgreSQL and Redis
+
+Make sure PostgreSQL and Redis are running locally.
+
+## Run application
 
 ```bash
 poetry run uvicorn goit_hw_12.main:app --reload
-```
-
-Application URL:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-OpenAPI schema:
-
-```text
-http://127.0.0.1:8000/openapi.json
-```
-
----
-
-# Authentication
-
-The application uses JWT access tokens.
-
-## Signup
-
-```http
-POST /auth/signup
-```
-
-## Login
-
-```http
-POST /auth/login
-```
-
-# Email Verification Flow
-
-1. User registers via `POST /auth/signup`.
-2. The application creates a user with `confirmed = false`.
-3. A verification token is generated and sent to the user's email.
-4. User follows the verification link:
-
-```text
-GET /auth/confirmed_email/{token}
-```
-
-5. After successful verification, `confirmed` becomes `true`.
-6. Only confirmed users can log in via `POST /auth/login`.
-
----
-
-# Contacts Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | /contacts/ | Get all contacts |
-| GET | /contacts/{id} | Get contact by ID |
-| POST | /contacts/ | Create contact |
-| PUT | /contacts/{id} | Update contact |
-| DELETE | /contacts/{id} | Delete contact |
-| GET | /contacts/search/ | Search contacts |
-| GET | /contacts/birthdays/ | Upcoming birthdays |
-
----
-
-# User Features
-
-- Email verification
-- Password reset
-- Avatar upload
-- Redis caching
-- Rate limiting
-- Role-based permissions
-
----
-
-# Roles
-
-Supported roles:
-
-- `user`
-- `admin`
-
-Only administrators can update default avatars.
-
----
-
-# Redis Caching
-
-Redis is used for caching authenticated users.
-
----
-
-# Testing
-
-The project contains:
-
-- Unit tests
-- Integration tests
-
-Testing tools:
-
-- pytest
-- pytest-asyncio
-- pytest-cov
-- httpx
-
-## Run tests
-
-```bash
-poetry run python -m pytest tests/
-```
-
-## Run tests with coverage
-
-```bash
-poetry run python -m pytest --cov=goit_hw_12 --cov-report=term-missing tests/
-```
-
-Current test coverage:
-
-```text
-75%
-```
-
----
-
-# Generate HTML Coverage Report
-
-```bash
-poetry run python -m pytest --cov=goit_hw_12 --cov-report=html tests/
-```
-
-Coverage report will be generated in:
-
-```text
-htmlcov/index.html
-```
-
----
-
-# Sphinx Documentation
-
-Generate documentation:
-
-```bash
-sphinx-build -b html docs docs/_build
 ```
 
 ---
@@ -316,6 +185,184 @@ OpenAPI schema:
 ```text
 http://127.0.0.1:8000/openapi.json
 ```
+
+---
+
+# Authentication Flow
+
+## User registration
+
+```http
+POST /auth/signup
+```
+
+After successful registration:
+- password is hashed
+- verification email is sent
+- user is stored in database
+
+---
+
+## Email verification
+
+User receives verification link:
+
+```http
+GET /auth/confirmed_email/{token}
+```
+
+After verification:
+- `confirmed=True`
+- user can login
+
+---
+
+## Login
+
+```http
+POST /auth/login
+```
+
+Returns:
+
+```json
+{
+  "access_token": "...",
+  "token_type": "bearer"
+}
+```
+
+---
+
+# Contacts Functionality
+
+Authenticated users can:
+- create contacts
+- update contacts
+- delete contacts
+- search contacts
+- view upcoming birthdays
+
+Users only have access to their own contacts.
+
+---
+
+# Roles
+
+Supported roles:
+- `user`
+- `admin`
+
+Only admins can:
+- update default avatar functionality
+
+---
+
+# Redis Caching
+
+Authenticated users are cached in Redis.
+
+`get_current_user()`:
+- first checks Redis
+- if user exists in cache → database is not queried
+- otherwise user is loaded from PostgreSQL and cached
+
+---
+
+# Rate Limiting
+
+Rate limiting is enabled with SlowAPI.
+
+Example:
+- `/users/me` endpoint has request limits
+
+---
+
+# CORS
+
+CORS is configured for local frontend development.
+
+Example allowed origins:
+
+```python
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+```
+
+---
+
+# Testing
+
+The project includes:
+- unit tests
+- integration tests
+- authentication tests
+- Redis cache tests
+- role-based access tests
+- CRUD business logic tests
+
+Run tests:
+
+```bash
+poetry run python -m pytest tests/
+```
+
+Run tests with coverage:
+
+```bash
+poetry run python -m pytest \
+--cov=goit_hw_12 \
+--cov-report=term-missing \
+--cov-report=html \
+tests/
+```
+
+---
+
+# Coverage Report
+
+HTML coverage report is generated in:
+
+```text
+htmlcov/
+```
+
+Open:
+
+```text
+htmlcov/index.html
+```
+
+in browser to inspect detailed coverage.
+
+---
+
+# Sphinx Documentation
+
+Generate documentation:
+
+```bash
+sphinx-build -b html docs docs/_build
+```
+
+Generated documentation:
+
+```text
+docs/_build/index.html
+```
+
+---
+
+# Security
+
+- Passwords are hashed
+- JWT authentication is used
+- Secrets are stored in `.env`
+- Redis cache reduces DB load
+- Email verification is required
+- Role-based access is enforced
 
 ---
 
