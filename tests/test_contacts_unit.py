@@ -1,5 +1,5 @@
 from datetime import date, timedelta 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from goit_hw_12.crud import (
     create_contact,
@@ -136,3 +136,59 @@ def test_get_upcoming_birthdays_future_in_7_days():
     result = get_upcoming_birthdays(db=db, user=user)
 
     assert len(result) == 1
+
+
+from sqlalchemy.exc import IntegrityError
+
+
+def test_create_contact_integrity_error():
+    db = MagicMock()
+    user = MagicMock()
+    user.id = 1
+    db.commit.side_effect = IntegrityError("mock error", "mock param", "mock orig")
+
+    contact = ContactCreate(
+        first_name="Ruslana",
+        last_name="Test",
+        email="ruslana@test.com",
+        phone="123456789",
+        birthday=date(1990, 5, 10),
+    )
+
+    import pytest
+    with pytest.raises(IntegrityError):
+        create_contact(db=db, contact=contact, user=user)
+    
+    db.rollback.assert_called_once()
+
+
+def test_get_upcoming_birthdays_next_year():
+    db = MagicMock()
+    user = MagicMock()
+    user.id = 1
+
+    today = date.today()
+    # Contact with birthday that already happened this year but will happen next year
+    # It shouldn't be included unless today is Dec 25-31 and birthday is Jan 1-7
+    # To test the wrap-around, let's mock date.today() inside the test
+    
+    # We will use patch to mock date inside the module
+    with patch("goit_hw_12.crud.date") as mock_date:
+        mock_date.today.return_value = date(2023, 12, 30)
+        
+        future_birthday = date(1990, 1, 2)
+        contact = Contact(
+            id=1,
+            first_name="Future",
+            last_name="Birthday",
+            email="wrap@test.com",
+            phone="123",
+            birthday=future_birthday,
+            user_id=1,
+        )
+
+        db.query.return_value.filter.return_value.all.return_value = [contact]
+
+        result = get_upcoming_birthdays(db=db, user=user)
+
+        assert len(result) == 1

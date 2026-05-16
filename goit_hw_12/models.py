@@ -7,6 +7,9 @@ from goit_hw_12.database import Base
 
 
 class User(Base):
+    """
+    Database model for a user.
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -16,12 +19,16 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
     role = Column(String(20), default="user")
+    refresh_token = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     contacts = relationship("Contact", back_populates="user")
 
 
 class Contact(Base):
+    """
+    Database model for a contact.
+    """
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)

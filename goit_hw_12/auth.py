@@ -49,11 +49,40 @@ def get_password_hash(password):
 def create_access_token(data: dict, expires_delta: Optional[int] = None):
     """
     Create JWT access token.
+
+    :param data: Data to encode in the token.
+    :param expires_delta: Optional expiration time in minutes.
+    :return: Encoded JWT access token.
     """
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=expires_delta or settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[int] = None):
+    """
+    Create JWT refresh token.
+
+    :param data: Data to encode in the token.
+    :param expires_delta: Optional expiration time in days.
+    :return: Encoded JWT refresh token.
+    """
+    to_encode = data.copy()
+
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=expires_delta or 7
     )
 
     to_encode.update({"exp": expire})
@@ -244,7 +273,11 @@ async def login(
     db: Session = Depends(get_db),
 ):
     """
-    Authenticate user and return JWT token.
+    Authenticate user and return JWT access and refresh tokens.
+
+    :param form_data: OAuth2 password request form data.
+    :param db: Database session.
+    :return: Dictionary containing access token, refresh token, and token type.
     """
 
     user = (
@@ -277,9 +310,58 @@ async def login(
     access_token = create_access_token(
         data={"sub": user.email}
     )
+    refresh_token = create_refresh_token(
+        data={"sub": user.email}
+    )
+    user.refresh_token = refresh_token
+    db.commit()
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+
+@router.get("/refresh_token")
+async def refresh_token(
+    refresh_token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    """
+    Refresh access token using refresh token.
+
+    :param refresh_token: The refresh token to use (passed as Bearer token).
+    :param db: Database session.
+    :return: Dictionary containing new access token, refresh token, and token type.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            refresh_token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        email = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.email == email).first()
+    if user is None or user.refresh_token != refresh_token:
+        raise credentials_exception
+
+    access_token = create_access_token(data={"sub": user.email})
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 

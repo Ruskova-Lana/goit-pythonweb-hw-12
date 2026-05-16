@@ -228,6 +228,27 @@ Returns:
 ```json
 {
   "access_token": "...",
+  "refresh_token": "...",
+  "token_type": "bearer"
+}
+```
+
+---
+
+## Refresh Token
+
+```http
+GET /auth/refresh_token
+```
+Header:
+`Authorization: Bearer <your_refresh_token>`
+
+Returns:
+
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
   "token_type": "bearer"
 }
 ```
@@ -306,18 +327,10 @@ The project includes:
 Run tests:
 
 ```bash
-poetry run python -m pytest tests/
+poetry run pytest
 ```
 
-Run tests with coverage:
-
-```bash
-poetry run python -m pytest \
---cov=goit_hw_12 \
---cov-report=term-missing \
---cov-report=html \
-tests/
-```
+The tests will automatically generate a coverage report (`htmlcov/` and `coverage.xml`) due to settings in `pytest.ini`.
 
 ---
 
@@ -352,6 +365,14 @@ Generated documentation:
 ```text
 docs/_build/index.html
 ```
+
+---
+
+# Cloud Deployment & CI/CD
+
+This project is configured for cloud deployment:
+- **Render.com**: The `render.yaml` file defines the infrastructure as code to automatically deploy the FastAPI application, PostgreSQL database, and Redis cache.
+- **GitHub Actions**: The `.github/workflows/main.yml` file sets up a CI pipeline that runs tests and uploads coverage reports on every push and pull request.
 
 ---
 

@@ -5,6 +5,7 @@ description = ""
 authors = [
     {name = "Rukova-Lana",email = "Ruslana.uskova@gmail.comm"}
 ]
+packages = [{include = "goit_hw_12"}]
 requires-python = ">=3.10,<4.0"
 dependencies = [
     "fastapi (>=0.136.1,<0.137.0)",

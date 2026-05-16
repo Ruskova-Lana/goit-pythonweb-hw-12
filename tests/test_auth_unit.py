@@ -135,3 +135,52 @@ def test_admin_required_forbidden():
         admin_required(current_user=user)
 
     assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_no_sub():
+    token = jwt.encode({"other": "value"}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(token=token, db=db)
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_jwt_error():
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(token="invalid_token", db=db)
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_from_db():
+    token = jwt.encode({"sub": "db@test.com"}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    db = MagicMock()
+    user_mock = MagicMock()
+    user_mock.email = "db@test.com"
+    user_mock.id = 2
+    user_mock.username = "dbuser"
+    user_mock.avatar = None
+    user_mock.confirmed = True
+    user_mock.role = "user"
+    
+    db.query().filter().first.return_value = user_mock
+    
+    with patch("goit_hw_12.auth.redis_client.get", return_value=None):
+        with patch("goit_hw_12.auth.redis_client.setex") as mock_setex:
+            user = await get_current_user(token=token, db=db)
+            assert user.email == "db@test.com"
+            mock_setex.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_not_found():
+    token = jwt.encode({"sub": "none@test.com"}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    db = MagicMock()
+    db.query().filter().first.return_value = None
+    with patch("goit_hw_12.auth.redis_client.get", return_value=None):
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(token=token, db=db)
+        assert exc_info.value.status_code == 401
